@@ -167,9 +167,12 @@ a: 00:04:01 / 00:04:48 (84%) cache: 46s/1mb
 * yt-dlp (installed via pip)
 * mpv (system installation required)
 
+## demo
+https://github.com/user-attachments/assets/567eae7a-e29b-4fdf-acf5-46e314273e3e
+
 ## license
 
-this project license is under MIT.
+this project's license is under MIT.
 
 ## contributing
 
