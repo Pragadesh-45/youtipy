@@ -1,6 +1,8 @@
 # youtipy
 
-a simple command-line yt music player that searches for songs and plays them using `yt-dlp` and `mpv`.
+**version 0.2**
+
+a simple command-line yt music player that searches for songs and plays them using `yt-dlp` and `mpv`. supports both single songs and youtube playlists with full navigation controls.
 
 ## need
 
@@ -75,14 +77,18 @@ source venv/bin/activate
 ### basic usage
 
 ```bash
+# play a single song
 python3 youtipy.py "song name"
+
+# play a youtube playlist
+python3 youtipy.py "https://www.youtube.com/playlist?list=PLxxxxx"
 ```
 
 ### interactive mode
 
 ```bash
 python3 youtipy.py
-# you'll be prompted to enter a song name
+# you'll be prompted to enter a song name or playlist URL
 ```
 
 ### with loop count
@@ -93,7 +99,23 @@ python3 youtipy.py "song name" 3
 
 # infinite loop (default)
 python3 youtipy.py "song name" -1
+
+# loop playlist 2 times
+python3 youtipy.py "https://www.youtube.com/playlist?list=PLxxxxx" 2
 ```
+
+### playlist navigation
+
+when playing a playlist, you can navigate using mpv's built-in controls:
+
+- `>` or `]` - next track
+- `<` or `[` - previous track
+- `SPACE` - pause/resume
+- `q` - quit
+- `LEFT` - seek backward 10s
+- `RIGHT` - seek forward 10s
+- `UP` - volume up
+- `DOWN` - volume down
 
 ### set up an alias for easier access (recommended)
 
@@ -122,6 +144,8 @@ chmod +x youtipy.py
 
 ## examples
 
+### single songs
+
 ```bash
 # play "thuli thuli" once
 python3 youtipy.py "thuli thuli"
@@ -131,8 +155,24 @@ python3 youtipy.py "boomi enna suththuthe" 5
 
 # play "wide putin walk" infinitely
 python3 youtipy.py "wide putin walk" -1
+```
 
-# interactive mode
+### playlists
+
+```bash
+# play a playlist (infinite loop)
+python3 youtipy.py "https://www.youtube.com/playlist?list=PLxxxxx" -1
+
+# play a playlist 2 times
+python3 youtipy.py "https://www.youtube.com/playlist?list=PLxxxxx" 2
+
+# play from a video URL that's part of a playlist
+python3 youtipy.py "https://www.youtube.com/watch?v=xxxxx&list=PLxxxxx"
+```
+
+### interactive mode
+
+```bash
 python3 youtipy.py
 ```
 
@@ -147,9 +187,27 @@ a: 00:04:01 / 00:04:48 (84%) cache: 46s/1mb
 
 ## how it works
 
+### single songs
+
 1. **search**: the script uses `yt-dlp` to search youtube for your query + "lyrical video".
 2. **extract**: it gets the best audio-only stream url from the first search result.
 3. **play**: it uses `mpv` to play the audio stream without video.
+
+### playlists
+
+1. **detect**: automatically detects if the input is a playlist URL (or video URL with playlist parameter).
+2. **extract**: fetches all video IDs from the playlist using `yt-dlp`.
+3. **process**: gets the best audio stream URL for each video in the playlist.
+4. **play**: uses `mpv`'s native playlist support to play all tracks with full navigation controls.
+
+## features
+
+- ✅ single song playback with search
+- ✅ youtube playlist support with navigation
+- ✅ keyboard controls for playlist navigation
+- ✅ automatic playlist detection from video URLs
+- ✅ loop support for both songs and playlists
+- ✅ skips unavailable videos in playlists gracefully
 
 ## possible future enhancements
 - [ ] queue support (with navigation support)
