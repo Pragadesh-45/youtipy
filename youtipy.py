@@ -8,16 +8,15 @@ import re
 import socket
 import json
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 COOKIE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
-SOCKET_PATH = "/tmp/youtipy.sock"
+SOCKET_PATH = "youtipy" if sys.platform == "win32" else os.path.join(os.path.dirname(os.path.abspath(__file__)), "youtipy.sock")
 
 def clean_url(url):
-    # Remove shell escaping and clean up the URL
-    # Remove backslashes that might have been added by shell escaping
-    url = url.replace('\\', '')
-    # Decode any URL encoding
+    # On Unix, strip shell-escaped backslashes from URLs. Skip on Windows where backslashes are path separators.
+    if sys.platform != "win32":
+        url = url.replace('\\', '')
     try:
         url = urllib.parse.unquote(url)
     except:
@@ -102,15 +101,21 @@ def mpv_ytdl_args():
     ]
 
 def ipc_command(cmd):
+    payload = (json.dumps({"command": cmd}) + "\n").encode()
     try:
-        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-            s.connect(SOCKET_PATH)
-            s.sendall((json.dumps({"command": cmd}) + "\n").encode())
-            s.recv(4096)  # wait for mpv's response before closing
+        if sys.platform == "win32":
+            with open(r'\\.\pipe\youtipy', 'r+b', buffering=0) as pipe:
+                pipe.write(payload)
+                pipe.read(4096)
+        else:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                s.connect(SOCKET_PATH)
+                s.sendall(payload)
+                s.recv(4096)
     except FileNotFoundError:
         print("No active youtipy session. Start one first.")
         sys.exit(1)
-    except ConnectionRefusedError:
+    except (ConnectionRefusedError, OSError):
         print("youtipy session not responding.")
         sys.exit(1)
 

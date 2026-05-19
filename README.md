@@ -1,8 +1,8 @@
 # youtipy
 
-**version 0.3.1**
+**version 0.3.2**
 
-a simple command-line yt music player that searches for songs and plays them using `yt-dlp` and `mpv`. supports both single songs and youtube playlists with full navigation controls.
+a simple command-line yt music player that searches for songs and plays them using `yt-dlp` and `mpv`. supports windows, macos, and linux. supports both single songs and youtube playlists with full navigation controls.
 
 ## need
 
@@ -10,15 +10,36 @@ wanted a simple ad-less, distraction-less music player from youtube which can be
 
 ## prerequisites
 
-before using youtipy, you need to install the following external tools:
+before using youtipy, you need to install `mpv`. `yt-dlp` is installed automatically via pip.
 
-### macos (using homebrew)
+### macos
 
 ```bash
 brew install mpv
 ```
 
-**note**: `yt-dlp` will be installed automatically via pip in the virtual environment setup.
+### linux
+
+```bash
+# ubuntu/debian
+sudo apt install mpv
+
+# arch
+sudo pacman -S mpv
+
+# fedora
+sudo dnf install mpv
+```
+
+### windows
+
+```powershell
+# winget
+winget install mpv
+
+# or scoop
+scoop install mpv
+```
 
 ## installation
 
@@ -35,8 +56,11 @@ cd youtipy
 # create virtual environment
 python3 -m venv venv
 
-# activate virtual environment
+# activate — macos/linux
 source venv/bin/activate
+
+# activate — windows
+.\venv\Scripts\Activate.ps1
 
 # install python dependencies
 pip install -r requirements.txt
@@ -71,7 +95,11 @@ you can easily generate this using the **cookies.txt browser extension**:
 ### first, activate your virtual environment
 
 ```bash
+# macos/linux
 source venv/bin/activate
+
+# windows
+.\venv\Scripts\Activate.ps1
 ```
 
 ### basic usage
@@ -136,20 +164,21 @@ works for both single songs (once queue has multiple tracks) and playlists:
 
 ### set up an alias for easier access (recommended)
 
-add this to your shell configuration file (`~/.zshrc` or `~/.bashrc`):
+**macos / linux** — add to `~/.zshrc` or `~/.bashrc`:
 
 ```bash
 alias youtipy='cd /path/to/youtipy && source venv/bin/activate && python3 youtipy.py'
 ```
 
-replace `/path/to/youtipy` with the actual path to your youtipy directory.
-
-after adding the alias, reload your shell configuration:
-
+reload:
 ```bash
-source ~/.zshrc    # for zsh
-# or
-source ~/.bashrc   # for bash
+source ~/.zshrc
+```
+
+**windows** — add to your PowerShell profile (`$PROFILE`):
+
+```powershell
+function youtipy { cd C:\path\to\youtipy; .\venv\Scripts\Activate.ps1; python youtipy.py @args }
 ```
 
 ### make it executable (alternative approach)
