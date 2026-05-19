@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import subprocess
-import threading
 import sys
+import os
 import urllib.parse
 import re
 
-COOKIE_FILE = "cookies.txt"
+COOKIE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
 
 def clean_url(url):
     # Remove shell escaping and clean up the URL
@@ -33,22 +33,21 @@ def is_playlist_url(url):
     url = clean_url(url)
     return "playlist" in url.lower() or "list=" in url.lower()
 
-def get_first_url(query):
-    # Fetch the first playable YouTube URL using yt-dlp and cookies.
+def get_first_watch_url(query):
+    # Fetch the YouTube watch URL (not stream URL) to avoid expiry issues.
     try:
         url = subprocess.check_output(
             [
                 "yt-dlp",
-                "-f", "bestaudio",
-                "--no-playlist",
+                "--flat-playlist",
                 f"ytsearch1:{query}",
-                "--get-url",
+                "--print", "webpage_url",
                 "--quiet",
-                "--cookies", COOKIE_FILE
+                "--cookies", COOKIE_FILE,
             ],
             text=True,
             stderr=subprocess.DEVNULL
-        ).strip()
+        ).strip().splitlines()[0]
         return url
     except subprocess.CalledProcessError:
         print("Failed to fetch URL. Check yt-dlp installation and cookies.")
@@ -73,65 +72,37 @@ def get_playlist_urls(playlist_url):
                 "--print", "%(id)s",
                 "--quiet",
                 playlist_url,
-                "--cookies", COOKIE_FILE
+                "--cookies", COOKIE_FILE,
+                "--extractor-args", EXTRACTOR_ARGS,
             ],
             text=True,
             stderr=subprocess.DEVNULL
         ).strip().split('\n')
         video_ids = [vid.strip() for vid in video_ids if vid.strip()]
 
-        # Then get the stream URL for each video
-        urls = []
-        total = len(video_ids)
-        for idx, vid_id in enumerate(video_ids, 1):
-            try:
-                result = subprocess.run(
-                    [
-                        "yt-dlp",
-                        "-f", "bestaudio",
-                        "--get-url",
-                        "--quiet",
-                        f"https://www.youtube.com/watch?v={vid_id}",
-                        "--cookies", COOKIE_FILE
-                    ],
-                    text=True,
-                    capture_output=True,
-                    check=True
-                )
-                url = result.stdout.strip()
-                if url:
-                    urls.append(url)
-                    print(f"✓ [{idx}/{total}] Video {vid_id} ready", end='\r')
-            except subprocess.CalledProcessError as e:
-                # Try to extract error message from stderr
-                error_msg = e.stderr.strip() if e.stderr else "Unknown error"
-                if "unavailable" in error_msg.lower() or "private" in error_msg.lower() or "deleted" in error_msg.lower():
-                    reason = "unavailable"
-                elif "age-restricted" in error_msg.lower():
-                    reason = "age-restricted"
-                else:
-                    reason = "failed to extract"
-                print(f"✗ [{idx}/{total}] Video {vid_id} - {reason}, skipping...")
-                continue
-
-        if urls:
-            print(f"\n✓ Successfully loaded {len(urls)}/{total} videos")
-
+        # Build watch URLs directly — let mpv/yt-dlp resolve streams at play time
+        urls = [f"https://www.youtube.com/watch?v={vid_id}" for vid_id in video_ids]
+        print(f"✓ Loaded {len(urls)} videos from playlist")
         return urls
     except subprocess.CalledProcessError:
         print("Failed to fetch playlist URLs. Check yt-dlp installation and cookies.")
         return []
 
+EXTRACTOR_ARGS = "youtube:player_client=android_vr"
+
+def mpv_ytdl_args():
+    return [
+        f"--ytdl-raw-options=cookies={COOKIE_FILE},extractor-args={EXTRACTOR_ARGS}",
+    ]
+
 def play_url(url, loop=-1):
-    # Play a YouTube URL in mpv.
-    # loop=-1 -> infinite loop, loop=N -> play N times
-    if url:
-        if loop == -1:
-            subprocess.run(["mpv", "--no-video", "--loop", url])
-        else:
-            subprocess.run(["mpv", "--no-video", f"--loop={loop}", url])
-    else:
+    if not url:
         print("No URL to play.")
+        return
+    args = ["mpv", "--no-video"] + mpv_ytdl_args()
+    args.append("--loop=inf" if loop == -1 else f"--loop={loop}")
+    args.append(url)
+    subprocess.run(args)
 
 def play_playlist(playlist_url, loop=-1):
     # Play all videos in a playlist with navigation support
@@ -153,24 +124,19 @@ def play_playlist(playlist_url, loop=-1):
     print("  DOWN    - Volume down")
     print("="*50 + "\n")
 
-    # Use mpv's native playlist support for navigation
-    mpv_args = ["mpv", "--no-video"]
+    mpv_args = ["mpv", "--no-video"] + mpv_ytdl_args()
 
     if loop == -1:
         mpv_args.append("--loop-playlist=inf")
     elif loop > 0:
         mpv_args.append(f"--loop-playlist={loop}")
 
-    # Add all URLs to mpv command
     mpv_args.extend(urls)
-
     subprocess.run(mpv_args)
 
 def play_song(query, loop=-1):
-    # Hybrid approach: fetch URL in a background thread and start playback.
-    url_thread = threading.Thread(target=lambda: play_url(get_first_url(query), loop))
-    url_thread.start()
-    url_thread.join()
+    url = get_first_watch_url(query)
+    play_url(url, loop)
 
 if __name__ == "__main__":
     # Command-line song input
