@@ -8,7 +8,7 @@ import re
 import socket
 import json
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 COOKIE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
 SOCKET_PATH = "/tmp/youtipy.sock"
@@ -120,20 +120,24 @@ def enqueue(query):
         urls = get_playlist_urls(query)
         for url in urls:
             ipc_command(["loadfile", url, "append-play"])
-        print(f"Queued {len(urls)} videos from playlist.")
+        msg = f"Queued {len(urls)} videos from playlist."
+        ipc_command(["show-text", f"⏭ {msg}", "3000"])
+        print(msg)
     else:
+        display_name = query
         query += " lyrical video"
         url = get_first_watch_url(query)
         if url:
             ipc_command(["loadfile", url, "append-play"])
-            print(f"Queued: {url}")
+            ipc_command(["show-text", f"⏭ Queued: {display_name}", "3000"])
+            print(f"Queued: {display_name}")
 
 def play_url(url, loop=-1):
     if not url:
         print("No URL to play.")
         return
     args = ["mpv", "--no-video"] + mpv_ytdl_args()
-    args.append("--loop=inf" if loop == -1 else f"--loop={loop}")
+    args.append("--loop-playlist=inf" if loop == -1 else f"--loop-playlist={loop}")
     args.append(url)
     subprocess.run(args)
 
@@ -174,6 +178,10 @@ def play_song(query, loop=-1):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] in ("--version", "-v"):
         print(f"youtipy v{__version__}")
+        sys.exit(0)
+
+    if len(sys.argv) > 1 and sys.argv[1] == "skip":
+        ipc_command(["playlist-next", "force"])
         sys.exit(0)
 
     if len(sys.argv) > 1 and sys.argv[1] == "enqueue":

@@ -1,6 +1,6 @@
 # youtipy
 
-**version 0.3.0**
+**version 0.3.1**
 
 a simple command-line yt music player that searches for songs and plays them using `yt-dlp` and `mpv`. supports both single songs and youtube playlists with full navigation controls.
 
@@ -104,9 +104,26 @@ python3 youtipy.py "song name" -1
 python3 youtipy.py "https://www.youtube.com/playlist?list=PLxxxxx" 2
 ```
 
-### playlist navigation
+### queue (dynamic — add songs while playing)
 
-when playing a playlist, you can navigate using mpv's built-in controls:
+from a second terminal while a session is running:
+
+```bash
+# enqueue a song by name
+youtipy enqueue "song name"
+
+# enqueue a full youtube playlist
+youtipy enqueue "https://www.youtube.com/playlist?list=PLxxxxx"
+
+# skip to next song
+youtipy skip
+```
+
+the enqueue notification also appears in the main playback terminal.
+
+### navigation controls
+
+works for both single songs (once queue has multiple tracks) and playlists:
 
 - `>` or `]` - next track
 - `<` or `[` - previous track
@@ -208,9 +225,10 @@ a: 00:04:01 / 00:04:48 (84%) cache: 46s/1mb
 - ✅ automatic playlist detection from video URLs
 - ✅ loop support for both songs and playlists
 - ✅ skips unavailable videos in playlists gracefully
+- ✅ dynamic queue — enqueue songs/playlists into a running session
+- ✅ skip to next track from another terminal
 
 ## possible future enhancements
-- [ ] queue support (with navigation support)
 - [ ] loop a song within a certain interval (for audio jukeboxes and OSTs)
 
 ## configuration
