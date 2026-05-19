@@ -5,8 +5,13 @@ import sys
 import os
 import urllib.parse
 import re
+import socket
+import json
+
+__version__ = "0.3.0"
 
 COOKIE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
+SOCKET_PATH = "/tmp/youtipy.sock"
 
 def clean_url(url):
     # Remove shell escaping and clean up the URL
@@ -93,7 +98,35 @@ EXTRACTOR_ARGS = "youtube:player_client=android_vr"
 def mpv_ytdl_args():
     return [
         f"--ytdl-raw-options=cookies={COOKIE_FILE},extractor-args={EXTRACTOR_ARGS}",
+        f"--input-ipc-server={SOCKET_PATH}",
     ]
+
+def ipc_command(cmd):
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+            s.connect(SOCKET_PATH)
+            s.sendall((json.dumps({"command": cmd}) + "\n").encode())
+            s.recv(4096)  # wait for mpv's response before closing
+    except FileNotFoundError:
+        print("No active youtipy session. Start one first.")
+        sys.exit(1)
+    except ConnectionRefusedError:
+        print("youtipy session not responding.")
+        sys.exit(1)
+
+def enqueue(query):
+    query = clean_url(query)
+    if is_playlist_url(query) or query.startswith("http"):
+        urls = get_playlist_urls(query)
+        for url in urls:
+            ipc_command(["loadfile", url, "append-play"])
+        print(f"Queued {len(urls)} videos from playlist.")
+    else:
+        query += " lyrical video"
+        url = get_first_watch_url(query)
+        if url:
+            ipc_command(["loadfile", url, "append-play"])
+            print(f"Queued: {url}")
 
 def play_url(url, loop=-1):
     if not url:
@@ -139,19 +172,23 @@ def play_song(query, loop=-1):
     play_url(url, loop)
 
 if __name__ == "__main__":
-    # Command-line song input
+    if len(sys.argv) > 1 and sys.argv[1] in ("--version", "-v"):
+        print(f"youtipy v{__version__}")
+        sys.exit(0)
+
+    if len(sys.argv) > 1 and sys.argv[1] == "enqueue":
+        if len(sys.argv) < 3:
+            print("Usage: youtipy enqueue <song name or URL>")
+            sys.exit(1)
+        enqueue(sys.argv[2])
+        sys.exit(0)
+
     song = sys.argv[1] if len(sys.argv) > 1 else input("Enter song name or playlist URL: ")
-
-    # Clean the URL to handle shell escaping
     song = clean_url(song)
-
-    # Optional: loop count as second argument
     loop = int(sys.argv[2]) if len(sys.argv) > 2 else -1
 
-    # Check if input is a playlist URL
     if is_playlist_url(song) or song.startswith("http"):
         play_playlist(song, loop=loop)
     else:
-        # Only lyrical songs for now
         song += " lyrical video"
         play_song(song, loop=loop)

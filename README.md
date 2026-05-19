@@ -1,6 +1,6 @@
 # youtipy
 
-**version 0.2**
+**version 0.3.0**
 
 a simple command-line yt music player that searches for songs and plays them using `yt-dlp` and `mpv`. supports both single songs and youtube playlists with full navigation controls.
 
